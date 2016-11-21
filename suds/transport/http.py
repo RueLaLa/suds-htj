@@ -53,7 +53,7 @@ class HttpTransport(Transport):
         self.proxy = {}
         self.urlopener = None
 
-    def open(self, request, timeout):
+    def open(self, request, timeout=False):
         try:
             url = request.url
             log.debug('opening (%s)', url)
@@ -63,7 +63,7 @@ class HttpTransport(Transport):
         except u2.HTTPError, e:
             raise TransportError(str(e), e.code, e.fp)
 
-    def send(self, request, timeout):
+    def send(self, request, timeout=False):
         result = None
         url = request.url
         msg = request.message
