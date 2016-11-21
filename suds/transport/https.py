@@ -55,11 +55,11 @@ class HttpAuthenticated(HttpTransport):
         HttpTransport.__init__(self, **kwargs)
         self.pm = u2.HTTPPasswordMgrWithDefaultRealm()
 
-    def open(self, request, timeout):
+    def open(self, request, timeout=None):
         self.addcredentials(request)
         return  HttpTransport.open(self, request, timeout)
 
-    def send(self, request, timeout):
+    def send(self, request, timeout=None):
         self.addcredentials(request)
         return  HttpTransport.send(self, request, timeout)
 
