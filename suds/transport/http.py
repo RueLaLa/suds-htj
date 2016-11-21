@@ -1,6 +1,6 @@
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the (LGPL) GNU Lesser General Public License as
-# published by the Free Software Foundation; either version 3 of the 
+# published by the Free Software Foundation; either version 3 of the
 # License, or (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
@@ -35,7 +35,7 @@ class HttpTransport(Transport):
     HTTP transport using urllib2.  Provided basic http transport
     that provides for cookies, proxies but no authentication.
     """
-    
+
     def __init__(self, **kwargs):
         """
         @param kwargs: Keyword arguments.
@@ -52,18 +52,18 @@ class HttpTransport(Transport):
         self.cookiejar = CookieJar()
         self.proxy = {}
         self.urlopener = None
-        
-    def open(self, request):
+
+    def open(self, request, timeout):
         try:
             url = request.url
             log.debug('opening (%s)', url)
             u2request = u2.Request(url)
             self.proxy = self.options.proxy
-            return self.u2open(u2request)
+            return self.u2open(u2request, timeout)
         except u2.HTTPError, e:
             raise TransportError(str(e), e.code, e.fp)
 
-    def send(self, request):
+    def send(self, request, timeout):
         result = None
         url = request.url
         msg = request.message
@@ -74,7 +74,7 @@ class HttpTransport(Transport):
             self.proxy = self.options.proxy
             request.headers.update(u2request.headers)
             log.debug('sending:\n%s', request)
-            fp = self.u2open(u2request)
+            fp = self.u2open(u2request, timeout)
             self.getcookies(fp, u2request)
             result = Reply(200, fp.headers.dict, fp.read())
             log.debug('received:\n%s', result)
@@ -92,7 +92,7 @@ class HttpTransport(Transport):
         @rtype: u2request: urllib2.Requet.
         """
         self.cookiejar.add_cookie_header(u2request)
-        
+
     def getcookies(self, fp, u2request):
         """
         Add cookies in the request to the cookiejar.
@@ -100,8 +100,8 @@ class HttpTransport(Transport):
         @rtype: u2request: urllib2.Requet.
         """
         self.cookiejar.extract_cookies(fp, u2request)
-        
-    def u2open(self, u2request):
+
+    def u2open(self, u2request, timeout=None):
         """
         Open a connection.
         @param u2request: A urllib2 request.
@@ -110,13 +110,15 @@ class HttpTransport(Transport):
         @rtype: fp
         """
         tm = self.options.timeout
+        if timeout is not None:
+            tm = timeout
         url = self.u2opener()
         if self.u2ver() < 2.6:
             socket.setdefaulttimeout(tm)
             return url.open(u2request)
         else:
             return url.open(u2request, timeout=tm)
-            
+
     def u2opener(self):
         """
         Create a urllib opener.
@@ -127,7 +129,7 @@ class HttpTransport(Transport):
             return u2.build_opener(*self.u2handlers())
         else:
             return self.urlopener
-        
+
     def u2handlers(self):
         """
         Get a collection of urllib handlers.
@@ -137,7 +139,7 @@ class HttpTransport(Transport):
         handlers = []
         handlers.append(u2.ProxyHandler(self.proxy))
         return handlers
-            
+
     def u2ver(self):
         """
         Get the major/minor version of the urllib2 lib.
@@ -151,7 +153,7 @@ class HttpTransport(Transport):
         except Exception, e:
             log.exception(e)
             return 0
-        
+
     def __deepcopy__(self, memo={}):
         clone = self.__class__()
         p = Unskin(self.options)
@@ -167,21 +169,21 @@ class HttpAuthenticated(HttpTransport):
     appends the I{Authorization} http header with base64 encoded
     credentials on every http request.
     """
-    
+
     def open(self, request):
         self.addcredentials(request)
         return HttpTransport.open(self, request)
-    
+
     def send(self, request):
         self.addcredentials(request)
         return HttpTransport.send(self, request)
-    
+
     def addcredentials(self, request):
         credentials = self.credentials()
         if not (None in credentials):
             encoded = base64.encodestring(':'.join(credentials))
             basic = 'Basic %s' % encoded[:-1]
             request.headers['Authorization'] = basic
-                 
+
     def credentials(self):
         return (self.options.username, self.options.password)

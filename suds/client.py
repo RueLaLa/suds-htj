@@ -602,7 +602,7 @@ class SoapClient:
                 self.method.name,
                 timer)
         timer.start()
-        result = self.send(soapenv)
+        result = self.send(soapenv, kwargs.get('timeout'))
         timer.stop()
         metrics.log.debug(
                 "method '%s' invoked: %s",
@@ -610,7 +610,7 @@ class SoapClient:
                 timer)
         return result
 
-    def send(self, soapenv):
+    def send(self, soapenv, timeout=None):
         """
         Send soap message.
         @param soapenv: A soap envelope to send.
@@ -643,7 +643,7 @@ class SoapClient:
             request = Request(location, soapenv)
             request.headers = self.headers()
             timer.start()
-            reply = transport.send(request)
+            reply = transport.send(request, timeout)
             timer.stop()
             metrics.log.debug('waited %s on server reply', timer)
             ctx = plugins.message.received(reply=reply.message)
