@@ -222,7 +222,11 @@ class Factory:
         self.resolver = PathResolver(wsdl)
         self.builder = Builder(self.resolver)
 
-    def create(self, name):
+    # Added **kwargs so it will throw away arguments that it doesn't use.
+    # This is because SudsServiceProxy doesn't know whether it's calling a
+    # service or factory method, so it always passes a timeout, which would
+    # otherwise break if it's dispatching to create which has an arity of 2.
+    def create(self, name, **kwargs):
         """
         create a WSDL type by name
         @param name: The name of a type defined in the WSDL.
