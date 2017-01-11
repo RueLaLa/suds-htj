@@ -222,7 +222,11 @@ class Factory:
         self.resolver = PathResolver(wsdl)
         self.builder = Builder(self.resolver)
 
-    def create(self, name):
+    # Added **kwargs so it will throw away arguments that it doesn't use.
+    # This is because SudsServiceProxy doesn't know whether it's calling a
+    # service or factory method, so it always passes a timeout, which would
+    # otherwise break if it's dispatching to create which has an arity of 2.
+    def create(self, name, **kwargs):
         """
         create a WSDL type by name
         @param name: The name of a type defined in the WSDL.
@@ -602,7 +606,7 @@ class SoapClient:
                 self.method.name,
                 timer)
         timer.start()
-        result = self.send(soapenv)
+        result = self.send(soapenv, kwargs.get('timeout'))
         timer.stop()
         metrics.log.debug(
                 "method '%s' invoked: %s",
@@ -610,7 +614,7 @@ class SoapClient:
                 timer)
         return result
 
-    def send(self, soapenv):
+    def send(self, soapenv, timeout=None):
         """
         Send soap message.
         @param soapenv: A soap envelope to send.
@@ -643,7 +647,7 @@ class SoapClient:
             request = Request(location, soapenv)
             request.headers = self.headers()
             timer.start()
-            reply = transport.send(request)
+            reply = transport.send(request, timeout)
             timer.stop()
             metrics.log.debug('waited %s on server reply', timer)
             ctx = plugins.message.received(reply=reply.message)
